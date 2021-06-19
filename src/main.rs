@@ -92,6 +92,8 @@ impl Boid {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut boids: Vec<Boid> = Vec::new();
+    let delta: f64 = 1. / 60.;
+    let mut time_left: f64 = 0.;
     for _ in 0..100 {
         let pos = vec2(gen_range(0.0, screen_width()), gen_range(0.0, screen_height()));
         boids.push(Boid::new(
@@ -103,51 +105,57 @@ async fn main() {
     let boid_count: f32 = boids.len() as f32;
 
     loop {
-        clear_background(Color::from_rgba(36, 42, 54, 255));
-        for i in 0..boid_count as usize {
-            let (boid, others) = boids.split_one_mut(i);
-            let mut nbrs = 0;
-            let mut center = Vec2::ZERO;
-            let mut avg_vel = Vec2::ZERO;
-            let mut move_ = Vec2::ZERO;
+        time_left += get_frame_time() as f64;
+        while time_left >= delta {
+            time_left -= delta;
+            for i in 0..boid_count as usize {
+                let (boid, others) = boids.split_one_mut(i);
+                let mut nbrs = 0;
+                let mut center = Vec2::ZERO;
+                let mut avg_vel = Vec2::ZERO;
+                let mut move_ = Vec2::ZERO;
 
-            for boid_nbr in others {
-                if (boid.centroid - boid_nbr.centroid).length() < 75. {
-                    center += boid_nbr.centroid;
-                    avg_vel += boid_nbr.velocity;
-                    nbrs += 1;
+                for boid_nbr in others {
+                    if (boid.centroid - boid_nbr.centroid).length() < 75. {
+                        center += boid_nbr.centroid;
+                        avg_vel += boid_nbr.velocity;
+                        nbrs += 1;
+                    }
+                    if (boid.centroid - boid_nbr.centroid).length() < 25. {
+                        move_ += boid.centroid - boid_nbr.centroid;
+                    }
                 }
-                if (boid.centroid - boid_nbr.centroid).length() < 25. {
-                    move_ += boid.centroid - boid_nbr.centroid;
+                boid.velocity += move_ * 0.05;
+                if nbrs > 0 {
+                    center /= nbrs as f32;
+                    avg_vel /= nbrs as f32;
+                    boid.velocity += (center - boid.centroid) * 0.005;
+                    boid.velocity += (avg_vel - boid.velocity) * 0.05;
                 }
+                let margin = 80.;
+                if boid.centroid.x < margin {
+                    boid.velocity.x += 1.;
+                }
+                if boid.centroid.x > screen_width() - margin {
+                    boid.velocity.x -= 1.;
+                }
+                if boid.centroid.y < margin {
+                    boid.velocity.y += 1.;
+                }
+                if boid.centroid.y > screen_height() - margin {
+                    boid.velocity.y -= 1.;
+                }
+                boid.velocity = boid.velocity.clamp_length_max(5.5);
+                boid.centroid += boid.velocity;
+                boid.p1 += boid.velocity;
+                boid.p2 += boid.velocity;
+                boid.p3 += boid.velocity;
+                let m_angle = -(boid.velocity.y).atan2(boid.velocity.x);
+                boid.rotate(m_angle);
             }
-            boid.velocity += move_ * 0.05;
-            if nbrs > 0 {
-                center /= nbrs as f32;
-                avg_vel /= nbrs as f32;
-                boid.velocity += (center - boid.centroid) * 0.005;
-                boid.velocity += (avg_vel - boid.velocity) * 0.05;
-            }
-            let margin = 80.;
-            if boid.centroid.x < margin {
-                boid.velocity.x += 1.;
-            }
-            if boid.centroid.x > screen_width() - margin {
-                boid.velocity.x -= 1.;
-            }
-            if boid.centroid.y < margin {
-                boid.velocity.y += 1.;
-            }
-            if boid.centroid.y > screen_height() - margin {
-                boid.velocity.y -= 1.;
-            }
-            boid.velocity = boid.velocity.clamp_length_max(5.5);
-            boid.centroid += boid.velocity;
-            boid.p1 += boid.velocity;
-            boid.p2 += boid.velocity;
-            boid.p3 += boid.velocity;
-            let m_angle = -(boid.velocity.y).atan2(boid.velocity.x);
-            boid.rotate(m_angle);
+        }
+        clear_background(Color::from_rgba(36, 42, 54, 255));
+        for boid in boids.iter() {
             draw_triangle(
                 boid.p1,
                 boid.p2,
@@ -155,7 +163,6 @@ async fn main() {
                 Color::from_rgba(129, 161, 193, 255),
             );
         }
-
         next_frame().await
     }
 }
