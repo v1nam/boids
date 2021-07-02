@@ -73,6 +73,7 @@ impl Boid {
 
 pub async fn run() {
     let mut boids: Vec<Boid> = Vec::new();
+    let mut boid_histories: Vec<Vec<Vec2>> = vec![Vec::new(); 100];
     for _ in 0..100 {
         let pos = vec2(
             gen_range(0.0, screen_width()),
@@ -135,14 +136,30 @@ pub async fn run() {
             let m_angle = -(boid.velocity.y).atan2(boid.velocity.x);
             boid.rotate(m_angle);
         }
+        for i in 0..boid_count as usize {
+            boid_histories[i].truncate(20);
+            boid_histories[i].insert(0, boids[i].centroid);
+        }
         clear_background(Color::from_rgba(36, 42, 54, 255));
-        for boid in boids.iter() {
+        for (bi, boid) in boids.iter().enumerate() {
             draw_triangle(
                 boid.p1,
                 boid.p2,
                 boid.p3,
                 Color::from_rgba(129, 161, 193, 255),
             );
+            if boid_histories[bi].len() > 2 {
+                for bh in 0..boid_histories[bi].len() - 2 {
+                    draw_line(
+                        boid_histories[bi][bh].x,
+                        boid_histories[bi][bh].y,
+                        boid_histories[bi][bh + 1].x,
+                        boid_histories[bi][bh + 1].y,
+                        1.,
+                        Color::from_rgba(139, 171, 243, 255 - (bh * 10) as u8),
+                    );
+                }
+            }
         }
         next_frame().await
     }
