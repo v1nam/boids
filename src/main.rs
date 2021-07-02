@@ -1,7 +1,7 @@
 use macroquad::prelude::*;
 use std::io;
-mod boids3d;
 mod boids2d;
+mod boids3d;
 
 fn window_conf() -> Conf {
     Conf {

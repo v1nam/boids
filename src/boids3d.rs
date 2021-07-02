@@ -92,7 +92,6 @@ pub async fn run() {
     show_mouse(false);
 
     loop {
-
         let delta = get_frame_time();
 
         if is_key_pressed(KeyCode::Escape) {
