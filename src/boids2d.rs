@@ -74,6 +74,7 @@ impl Boid {
 pub async fn run() {
     let mut boids: Vec<Boid> = Vec::new();
     let mut boid_histories: Vec<Vec<Vec2>> = vec![Vec::new(); 100];
+    let mut draw_trails = true;
     for _ in 0..100 {
         let pos = vec2(
             gen_range(0.0, screen_width()),
@@ -90,6 +91,9 @@ pub async fn run() {
     loop {
         if is_key_pressed(KeyCode::Escape) {
             break;
+        }
+        if is_key_pressed(KeyCode::Space) {
+            draw_trails = !draw_trails;
         }
         for i in 0..boid_count as usize {
             let (boid, others) = boids.split_one_mut(i);
@@ -136,9 +140,11 @@ pub async fn run() {
             let m_angle = -(boid.velocity.y).atan2(boid.velocity.x);
             boid.rotate(m_angle);
         }
-        for i in 0..boid_count as usize {
-            boid_histories[i].truncate(20);
-            boid_histories[i].insert(0, boids[i].centroid);
+        if draw_trails {
+            for i in 0..boid_count as usize {
+                boid_histories[i].truncate(20);
+                boid_histories[i].insert(0, boids[i].centroid);
+            }
         }
         clear_background(Color::from_rgba(36, 42, 54, 255));
         for (bi, boid) in boids.iter().enumerate() {
@@ -148,7 +154,7 @@ pub async fn run() {
                 boid.p3,
                 Color::from_rgba(129, 161, 193, 255),
             );
-            if boid_histories[bi].len() > 2 {
+            if draw_trails && boid_histories[bi].len() > 2 {
                 for bh in 0..boid_histories[bi].len() - 2 {
                     draw_line(
                         boid_histories[bi][bh].x,
